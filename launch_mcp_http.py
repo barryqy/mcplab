@@ -2,7 +2,7 @@
 """
 Generic HTTP/SSE Server Launcher for MCP Servers
 
-This launcher converts any MCP stdio server to an HTTP/SSE endpoint.
+This launcher converts any FastMCP server to an HTTP/SSE endpoint.
 
 Usage:
     python3 launch_mcp_http.py <server-file.py> [port]
@@ -19,8 +19,8 @@ import uvicorn
 from pathlib import Path
 
 
-def load_mcp_server(server_file: str):
-    """Load an MCP server from a Python file."""
+def load_fastmcp_server(server_file: str):
+    """Load a FastMCP server from a Python file."""
     server_path = Path(server_file)
     
     if not server_path.exists():
@@ -35,13 +35,15 @@ def load_mcp_server(server_file: str):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     
-    # Get the MCP server instance (usually named 'app')
-    if not hasattr(module, 'app'):
-        print(f"❌ Error: No 'app' variable found in {server_file}")
-        print("   Make sure your server file exports an MCP Server instance as 'app'")
+    # Get the FastMCP instance (usually named 'mcp')
+    if hasattr(module, 'mcp'):
+        return module.mcp
+    elif hasattr(module, 'app'):
+        return module.app
+    else:
+        print(f"❌ Error: No 'mcp' or 'app' variable found in {server_file}")
+        print("   Make sure your server file exports a FastMCP instance")
         sys.exit(1)
-    
-    return module.app
 
 
 def main():
@@ -65,51 +67,34 @@ def main():
     print(f"🔗 Port: {port}")
     print()
     
-    # Try using FastMCP if the server uses it
     try:
         from mcp.server.fastmcp import FastMCP
         
-        # Load the server
-        mcp_server = load_mcp_server(server_file)
+        # Load the FastMCP server
+        mcp_server = load_fastmcp_server(server_file)
         
-        # Check if it's a FastMCP instance
-        if isinstance(mcp_server, FastMCP):
-            print("✅ Detected FastMCP server")
-            app = mcp_server.sse_app()
-        else:
-            # Regular MCP Server - need to wrap it
-            print("✅ Detected standard MCP Server")
-            from mcp.server.sse import SseServerTransport
-            from starlette.applications import Starlette
-            from starlette.routing import Route
-            
-            sse = SseServerTransport("/messages")
-            
-            async def handle_sse(request):
-                async with sse.connect_sse(
-                    request.scope,
-                    request.receive,
-                    request._send
-                ) as streams:
-                    await mcp_server.run(
-                        streams[0],
-                        streams[1],
-                        mcp_server.create_initialization_options()
-                    )
-            
-            app = Starlette(
-                routes=[
-                    Route("/sse", endpoint=handle_sse),
-                    Route("/messages", endpoint=handle_sse),
-                ]
-            )
-    
+        if not isinstance(mcp_server, FastMCP):
+            print(f"❌ Error: Server is not a FastMCP instance")
+            print("   Update your server to use FastMCP for HTTP support")
+            sys.exit(1)
+        
+        print("✅ Loaded FastMCP server")
+        
+        # Get the SSE app (FastMCP handles both /sse and /messages automatically)
+        app = mcp_server.sse_app()
+        
     except ImportError as e:
         print(f"❌ Error: Missing dependency: {e}")
-        print("   Install with: pip install fastmcp uvicorn starlette")
+        print("   Install with: pip install fastmcp uvicorn")
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ Error loading server: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
     
     print(f"📡 SSE endpoint: http://127.0.0.1:{port}/sse")
+    print(f"📬 Messages endpoint: http://127.0.0.1:{port}/messages")
     print()
     print("To scan this server, run:")
     print(f"  mcp-scanner --analyzers yara remote --server-url http://127.0.0.1:{port}/sse")
@@ -130,4 +115,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
