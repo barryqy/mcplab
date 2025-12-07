@@ -47,7 +47,7 @@ echo -e "${CYAN}═════════════════════�
 echo ""
 
 mcp-scanner --analyzers yara --format detailed \
-    stdio --stdio-command python3 --stdio-arg examples/safe-mcp-server.py \
+    --stdio-command python3 --stdio-arg=examples/safe-mcp-server.py \
     > reports/safe-server-report.txt || true
 
 echo -e "${GREEN}✓ Safe server scan complete${NC}"
@@ -61,7 +61,7 @@ echo -e "${CYAN}═════════════════════�
 echo ""
 
 mcp-scanner --analyzers yara --format detailed \
-    stdio --stdio-command python3 --stdio-arg examples/malicious-mcp-server.py \
+    --stdio-command python3 --stdio-arg=examples/malicious-mcp-server.py \
     > reports/malicious-server-report.txt || true
 
 echo -e "${GREEN}✓ Malicious server scan complete${NC}"
@@ -75,7 +75,7 @@ echo -e "${CYAN}═════════════════════�
 echo ""
 
 mcp-scanner --analyzers yara --format detailed \
-    stdio --stdio-command python3 --stdio-arg examples/mixed-security-server.py \
+    --stdio-command python3 --stdio-arg=examples/mixed-security-server.py \
     > reports/mixed-server-report.txt || true
 
 echo -e "${GREEN}✓ Mixed server scan complete${NC}"

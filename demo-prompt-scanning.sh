@@ -65,7 +65,7 @@ echo ""
 
 # Use mcp-scanner to scan the stdio server's prompts
 mcp-scanner --analyzers llm --format detailed \
-    stdio --stdio-command python3 --stdio-arg examples/prompt-injection-server.py \
+    --stdio-command python3 --stdio-arg=examples/prompt-injection-server.py \
     prompts || true
 
 echo ""
