@@ -42,31 +42,40 @@ echo ""
 
 read -p "Press Enter to continue..."
 
-# Start the prompt injection server
+# Start the prompt injection server as HTTP
 echo ""
-echo -e "${CYAN}🚀 Starting prompt injection server...${NC}"
+echo -e "${CYAN}🚀 Starting prompt injection server as HTTP...${NC}"
 
-# Run server in background
-python3 examples/prompt-injection-server.py &
-SERVER_PID=$!
+# Start HTTP server in background
+python3 launch_mcp_http.py examples/prompt-injection-server.py > /tmp/prompt-server.log 2>&1 &
+HTTPSERVER_PID=$!
+echo $HTTPSERVER_PID > /tmp/prompt-server.pid
 
 # Give server time to start
-sleep 2
+sleep 3
 
-# Trap to ensure server is killed on exit
-trap "kill $SERVER_PID 2>/dev/null" EXIT
+# Verify server is running
+if ps -p $HTTPSERVER_PID > /dev/null 2>&1; then
+    echo -e "${GREEN}✓ HTTP Server started (PID: $HTTPSERVER_PID)${NC}"
+else
+    echo -e "${RED}✗ Server failed to start. Check log:${NC}"
+    cat /tmp/prompt-server.log
+    exit 1
+fi
 
-echo -e "${GREEN}✓ Server started (PID: $SERVER_PID)${NC}"
+# Update trap to ensure HTTP server is killed on exit
+trap "kill $HTTPSERVER_PID 2>/dev/null; rm -f /tmp/prompt-server.pid /tmp/prompt-server.log" EXIT
+
+echo -e "${GREEN}✓ Server ready at http://127.0.0.1:8000/sse${NC}"
 
 # Scan prompts
 echo ""
 echo -e "${CYAN}🔍 Scanning prompts for injection attacks...${NC}"
 echo ""
 
-# Use mcp-scanner to scan the stdio server's prompts
+# Use mcp-scanner to scan the prompts on the HTTP server
 mcp-scanner --analyzers llm --format detailed \
-    --stdio-command python3 --stdio-arg=examples/prompt-injection-server.py \
-    prompts || true
+    prompts --server-url http://127.0.0.1:8000/sse || true
 
 echo ""
 echo -e "${GREEN}════════════════════════════════════════════════════════════${NC}"
@@ -80,5 +89,6 @@ echo "  • Hidden exfiltration attempts are identified"
 echo ""
 
 # Cleanup
-kill $SERVER_PID 2>/dev/null || true
+kill $HTTPSERVER_PID 2>/dev/null || true
+rm -f /tmp/prompt-server.pid /tmp/prompt-server.log
 
