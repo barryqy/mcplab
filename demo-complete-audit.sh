@@ -18,13 +18,9 @@ echo "║     MCP Scanner Demo - Complete Security Audit            ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
-# Load environment
+# Load environment (optional)
 if [ -f ".env" ]; then
-    export $(cat .env | grep -v '^#' | xargs)
-else
-    echo -e "${RED}Error: .env file not found${NC}"
-    echo "Run ./0-init-lab.sh first"
-    exit 1
+    export $(cat .env | grep -v '^#' | xargs) 2>/dev/null || true
 fi
 
 # Create reports directory

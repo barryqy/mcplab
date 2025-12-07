@@ -18,13 +18,9 @@ echo "║     MCP Scanner Demo - Prompt Injection Detection        ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
-# Load environment
+# Load environment (optional - LLM API key not required)
 if [ -f ".env" ]; then
-    export $(cat .env | grep -v '^#' | xargs)
-else
-    echo -e "${RED}Error: .env file not found${NC}"
-    echo "Run ./0-init-lab.sh first"
-    exit 1
+    export $(cat .env | grep -v '^#' | xargs) 2>/dev/null || true
 fi
 
 # Check if MCP Scanner is installed
@@ -36,7 +32,7 @@ fi
 
 echo -e "${YELLOW}📋 This demo will:${NC}"
 echo "  1. Start an MCP server with malicious prompts"
-echo "  2. Scan all prompts using LLM analyzer"
+echo "  2. Scan all prompts using available analyzers"
 echo "  3. Display detected prompt injection attempts"
 echo ""
 
@@ -73,9 +69,23 @@ echo ""
 echo -e "${CYAN}🔍 Scanning prompts for injection attacks...${NC}"
 echo ""
 
-# Use mcp-scanner to scan the prompts on the HTTP server
-mcp-scanner --analyzers llm --format detailed \
-    prompts --server-url http://127.0.0.1:8000/sse || true
+# Check if LLM API key is configured
+if [ -n "$MCP_SCANNER_LLM_API_KEY" ] || [ -n "$AWS_ACCESS_KEY_ID" ]; then
+    echo -e "${GREEN}✓ LLM analyzer available - using LLM for prompt analysis${NC}"
+    echo ""
+    mcp-scanner --analyzers llm --format detailed \
+        prompts --server-url http://127.0.0.1:8000/sse || true
+else
+    echo -e "${YELLOW}⚠ LLM analyzer not configured (MCP_SCANNER_LLM_API_KEY not set)${NC}"
+    echo -e "${CYAN}ℹ Using YARA analyzer for prompt scanning instead${NC}"
+    echo ""
+    mcp-scanner --analyzers yara --format detailed \
+        prompts --server-url http://127.0.0.1:8000/sse || true
+    echo ""
+    echo -e "${CYAN}💡 Tip: To enable LLM-based prompt injection detection:${NC}"
+    echo "   export MCP_SCANNER_LLM_API_KEY='your-openai-api-key'"
+    echo "   Or use AWS Bedrock with AWS credentials"
+fi
 
 echo ""
 echo -e "${GREEN}════════════════════════════════════════════════════════════${NC}"
@@ -83,9 +93,10 @@ echo -e "${GREEN}✅ Demo complete!${NC}"
 echo -e "${GREEN}════════════════════════════════════════════════════════════${NC}"
 echo ""
 echo -e "${CYAN}💡 Key Takeaways:${NC}"
-echo "  • LLM analyzer detects prompt injection attempts"
-echo "  • Semantic analysis finds coercive instructions"
-echo "  • Hidden exfiltration attempts are identified"
+echo "  • MCP servers can expose prompts that may contain injection attempts"
+echo "  • YARA rules can detect suspicious patterns in prompts"
+echo "  • LLM analyzers provide deeper semantic analysis (when configured)"
+echo "  • Both analyzers help identify coercive instructions and exfiltration attempts"
 echo ""
 
 # Cleanup
