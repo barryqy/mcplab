@@ -73,6 +73,7 @@ async def scan_safe_server():
     try:
         from mcpscanner import Config, Scanner
         from mcpscanner.core.models import AnalyzerEnum
+        from mcpscanner.core.mcp_models import StdioServer
     except ImportError:
         print_error("MCP Scanner not installed")
         print_info("Run: pip install cisco-ai-mcp-scanner")
@@ -92,9 +93,14 @@ async def scan_safe_server():
     print_info("Using analyzers: YARA")
     
     try:
-        results = await scanner.scan_stdio_server_tools(
+        # Create StdioServer configuration
+        server_config = StdioServer(
             command="python3",
-            args=[str(server_path)],
+            args=[str(server_path)]
+        )
+        
+        results = await scanner.scan_stdio_server_tools(
+            server_config=server_config,
             analyzers=[AnalyzerEnum.YARA]
         )
         
@@ -120,11 +126,12 @@ async def scan_malicious_server():
     try:
         from mcpscanner import Config, Scanner
         from mcpscanner.core.models import AnalyzerEnum
+        from mcpscanner.core.mcp_models import StdioServer
     except ImportError:
         print_error("MCP Scanner not installed")
         return
     
-    export_to_environment()
+    load_dotenv()
     config = Config()
     scanner = Scanner(config)
     
@@ -134,9 +141,14 @@ async def scan_malicious_server():
     print_info("Using analyzers: YARA")
     
     try:
-        results = await scanner.scan_stdio_server_tools(
+        # Create StdioServer configuration
+        server_config = StdioServer(
             command="python3",
-            args=[str(server_path)],
+            args=[str(server_path)]
+        )
+        
+        results = await scanner.scan_stdio_server_tools(
+            server_config=server_config,
             analyzers=[AnalyzerEnum.YARA]
         )
         
