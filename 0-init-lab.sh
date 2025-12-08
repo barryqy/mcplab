@@ -1,84 +1,127 @@
 #!/bin/bash
 
-# MCP Scanner Lab - Environment Setup Script
-# This script sets up the lab environment
+# MCP Scanner Lab - Initialization Script
+# This script sets up credentials securely for the MCP Scanner lab
 
 set -e
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-NC='\033[0m' # No Color
-
-# Print header
-echo -e "${CYAN}"
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║     MCP Scanner Lab - Environment Setup                   ║"
+echo "║     MCP Scanner Lab - Credential Setup                    ║"
 echo "╚════════════════════════════════════════════════════════════╝"
-echo -e "${NC}"
-
-echo ""
-echo -e "${GREEN}Welcome to the MCP Scanner Lab!${NC}"
-echo ""
-echo -e "${CYAN}MCP Scanner has 3 analyzer engines:${NC}"
-echo -e "  1. ${GREEN}YARA Analyzer${NC} - Pattern matching (NO API KEY REQUIRED) ✓"
-echo -e "  2. ${YELLOW}LLM Analyzer${NC} - AI-powered analysis (optional - requires your own LLM API key)"
-echo -e "  3. ${YELLOW}API Analyzer${NC} - Cisco AI Defense (optional - enterprise subscription)"
-echo ""
-echo -e "${CYAN}For this lab:${NC}"
-echo -e "  • YARA analyzer works immediately without any setup"
-echo -e "  • You can optionally add your own API keys to .env file for advanced features"
 echo ""
 
-# Create .env file with template
-echo -e "${CYAN}📝 Creating .env configuration file...${NC}"
+# Prompt for lab password (only once!)
+echo "════════════════════════════════════════════════════════════"
+echo "🔐 🔐 🔐  PASSWORD REQUIRED  🔐 🔐 🔐"
+echo "════════════════════════════════════════════════════════════"
+echo ""
+read -sp "👉 Enter lab password: " LAB_PASSWORD
+echo ""
+echo ""
 
-cat > .env << 'EOF'
-# MCP Scanner Lab Configuration
-# 
-# YARA analyzer
-# To use it: mcp-scanner --analyzers yara <options>
-#
-# Optional: Add your own API keys below for advanced features
+if [ -z "$LAB_PASSWORD" ]; then
+    echo "❌ Password cannot be empty"
+    exit 1
+fi
 
-# Optional: Cisco AI Defense API (enterprise feature)
-# Uncomment and add your key to use the API analyzer
-# MCP_SCANNER_API_KEY=your_api_key_here
-# MCP_SCANNER_ENDPOINT=https://us.api.inspect.aidefense.security.cisco.com/api/v1
+export LAB_PASSWORD
 
-# Optional: LLM Provider (for LLM analyzer)
-# Uncomment and add your key to use the LLM analyzer
-# Examples:
-#   OpenAI: MCP_SCANNER_LLM_API_KEY=sk-...
-#   AWS Bedrock: Set AWS credentials via AWS_PROFILE or AWS_* env vars
-#
-# MCP_SCANNER_LLM_API_KEY=your_llm_api_key_here
-# MCP_SCANNER_LLM_MODEL=gpt-4o
-# MCP_SCANNER_LLM_BASE_URL=https://api.openai.com/v1
+# Source shared credentials helper
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/.credentials-helper.sh"
+
+echo "🔄 Fetching credentials from secure source..."
+echo ""
+
+# Fetch credentials using the helper
+if ! get_mcplab_credentials; then
+    echo "❌ Failed to fetch credentials"
+    echo "   Please check your password and internet connection"
+    exit 1
+fi
+
+echo "✓ Credentials retrieved successfully"
+echo ""
+
+# Create .mcpscanner directory if it doesn't exist
+mkdir -p .mcpscanner
+chmod 700 .mcpscanner
+
+# Write credentials to cache file
+echo "📝 Caching session data..."
+
+# Create cache file with mixed content
+CACHE_FILE=".mcpscanner/.cache"
+TIMESTAMP=$(date +%s)
+SESSION_ID=$(openssl rand -hex 16 2>/dev/null || echo $(date +%s%N | md5sum | cut -d' ' -f1))
+
+# Prepare session data
+ENCRYPTION_KEY="${DEVENV_USER:-default-key-fallback}"
+
+# Build session payload (just Mistral key for now)
+PLAINTEXT="${MISTRAL_API_KEY}"
+
+# Encode session data
+ENCRYPTED=$(python3 << PYPYTHON
+import sys
+import base64
+
+plaintext = """${PLAINTEXT}"""
+key = """${ENCRYPTION_KEY}"""
+
+# Encode with session key
+def xor_encrypt(data, key):
+    key_repeated = (key * (len(data) // len(key) + 1))[:len(data)]
+    return bytes(a ^ b for a, b in zip(data.encode(), key_repeated.encode()))
+
+encrypted = xor_encrypt(plaintext, key)
+print(base64.b64encode(encrypted).decode())
+PYPYTHON
+)
+
+# Create minimal cache content
+cat > "$CACHE_FILE" << EOF
+# Session cache - DO NOT EDIT
+session_start=$TIMESTAMP
+session_id=$SESSION_ID
+cache_version=1.0.0
+sdk_version=1.0.0
+last_sync=$TIMESTAMP
+session_token=$ENCRYPTED
 EOF
 
-echo -e "${GREEN}✓ Configuration file created${NC}"
+chmod 600 "$CACHE_FILE"
 
-# Print success message
+echo "✓ Session cache created"
 echo ""
-echo -e "${GREEN}════════════════════════════════════════════════════════════${NC}"
-echo -e "${GREEN}✅ Lab setup complete!${NC}"
-echo -e "${GREEN}════════════════════════════════════════════════════════════${NC}"
+
+# Export environment variables for immediate use
+echo "🔒 Exporting credentials as environment variables..."
+export MCP_SCANNER_LLM_API_KEY
+export MCP_SCANNER_LLM_MODEL
+
+echo "✓ Environment variables configured"
 echo ""
-echo -e "${CYAN}💡 You can now use MCP Scanner with YARA:${NC}"
+
+echo "════════════════════════════════════════════════════════════"
+echo "✅ Lab initialization complete!"
+echo "════════════════════════════════════════════════════════════"
 echo ""
-echo -e "   • ${YELLOW}python3 mcp_lab.py${NC}              (Interactive lab tool)"
-echo -e "   • ${YELLOW}./demo-complete-audit.sh${NC}        (Complete security audit)"
-echo -e "   • ${YELLOW}./demo-prompt-scanning.sh${NC}       (Prompt injection demo)"
+echo "💡 You can now use ALL MCP Scanner analyzers:"
+echo "   • YARA Analyzer    - Pattern matching (always available)"
+echo "   • LLM Analyzer     - AI-powered with Mistral ✓ ENABLED"
+echo "   • API Analyzer     - Cisco AI Defense (optional)"
 echo ""
-echo -e "${CYAN}💡 To add optional credentials for advanced features:${NC}"
-echo -e "   • Edit the ${YELLOW}.env${NC} file and uncomment the API keys you want to use"
-echo -e "   • Then run: ${YELLOW}source .env${NC}"
+echo "💡 Example commands:"
+echo "   ${YELLOW}mcp-scanner --analyzers yara,llm --format detailed \\${NC}"
+echo "     remote --server-url https://your-server/sse"
 echo ""
-echo -e "${CYAN}💡 Example commands (YARA - no setup needed):${NC}"
-echo -e "   ${YELLOW}mcp-scanner --analyzers yara --scan-known-configs${NC}"
-echo -e "   ${YELLOW}mcp-scanner --analyzers yara --stdio-command python3 --stdio-arg=examples/safe-mcp-server.py${NC}"
+echo "   ${YELLOW}./demo-prompt-scanning.sh${NC}    (Prompt injection demo)"
+echo "   ${YELLOW}./demo-complete-audit.sh${NC}     (Complete security audit)"
+echo ""
+
+# Clean up sensitive variables from memory
+cleanup_credentials
+
+echo "📌 Note: Credentials are cached. To refresh, re-run this script."
 echo ""

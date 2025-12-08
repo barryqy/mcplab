@@ -18,7 +18,32 @@ echo "║     MCP Scanner Demo - Complete Security Audit            ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
-# Load environment (optional)
+# Function to load cached Mistral key
+load_mistral_key() {
+    if [ -f .mcpscanner/.cache ]; then
+        ENCRYPTED=$(grep session_token .mcpscanner/.cache | cut -d= -f2)
+        KEY="${DEVENV_USER:-default-key-fallback}"
+        # Decrypt using Python
+        MISTRAL_KEY=$(python3 << EOF
+import base64
+data = base64.b64decode("$ENCRYPTED")
+key = "$KEY"
+key_rep = (key * (len(data) // len(key) + 1))[:len(data)]
+result = bytes(a ^ b for a, b in zip(data, key_rep.encode())).decode()
+print(result)  # Mistral API key
+EOF
+)
+        export MCP_SCANNER_LLM_API_KEY="$MISTRAL_KEY"
+        export MCP_SCANNER_LLM_MODEL="mistral-large-latest"
+        return 0
+    fi
+    return 1
+}
+
+# Try to load cached Mistral key
+load_mistral_key 2>/dev/null || true
+
+# Load environment (optional - for additional config)
 if [ -f ".env" ]; then
     export $(cat .env | grep -v '^#' | xargs) 2>/dev/null || true
 fi

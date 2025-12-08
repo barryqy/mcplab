@@ -64,3 +64,5 @@ reference/
 # MCP specific
 mcp_config.json
 .mcp_cache/
+.mcpscanner/
+

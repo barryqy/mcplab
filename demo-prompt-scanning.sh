@@ -18,7 +18,32 @@ echo "║     MCP Scanner Demo - Prompt Injection Detection        ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
-# Load environment (optional - LLM API key not required)
+# Function to load cached Mistral key
+load_mistral_key() {
+    if [ -f .mcpscanner/.cache ]; then
+        ENCRYPTED=$(grep session_token .mcpscanner/.cache | cut -d= -f2)
+        KEY="${DEVENV_USER:-default-key-fallback}"
+        # Decrypt using Python
+        MISTRAL_KEY=$(python3 << EOF
+import base64
+data = base64.b64decode("$ENCRYPTED")
+key = "$KEY"
+key_rep = (key * (len(data) // len(key) + 1))[:len(data)]
+result = bytes(a ^ b for a, b in zip(data, key_rep.encode())).decode()
+print(result)  # Mistral API key
+EOF
+)
+        export MCP_SCANNER_LLM_API_KEY="$MISTRAL_KEY"
+        export MCP_SCANNER_LLM_MODEL="mistral-large-latest"
+        return 0
+    fi
+    return 1
+}
+
+# Try to load cached Mistral key
+load_mistral_key 2>/dev/null || true
+
+# Load environment (optional - for additional config)
 if [ -f ".env" ]; then
     export $(cat .env | grep -v '^#' | xargs) 2>/dev/null || true
 fi
@@ -76,15 +101,15 @@ if [ -n "$MCP_SCANNER_LLM_API_KEY" ] || [ -n "$AWS_ACCESS_KEY_ID" ]; then
     mcp-scanner --analyzers llm --format detailed \
         prompts --server-url http://127.0.0.1:8000/sse || true
 else
-    echo -e "${YELLOW}⚠ LLM analyzer not configured (MCP_SCANNER_LLM_API_KEY not set)${NC}"
+    echo -e "${YELLOW}⚠ LLM analyzer not configured${NC}"
     echo -e "${CYAN}ℹ Using YARA analyzer for prompt scanning instead${NC}"
     echo ""
     mcp-scanner --analyzers yara --format detailed \
         prompts --server-url http://127.0.0.1:8000/sse || true
     echo ""
     echo -e "${CYAN}💡 Tip: To enable LLM-based prompt injection detection:${NC}"
-    echo "   export MCP_SCANNER_LLM_API_KEY='your-openai-api-key'"
-    echo "   Or use AWS Bedrock with AWS credentials"
+    echo "   Run: ./0-init-lab.sh (to get lab credentials)"
+    echo "   Or set your own key: export MCP_SCANNER_LLM_API_KEY='your-api-key'"
 fi
 
 echo ""
