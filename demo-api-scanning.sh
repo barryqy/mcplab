@@ -21,7 +21,7 @@ echo -e "${NC}"
 # Function to load cached Mistral key
 load_mistral_key() {
     if [ -f .mcpscanner/.cache ]; then
-        ENCRYPTED=$(grep session_token .mcpscanner/.cache | cut -d= -f2 | tr -d ' \n\r\t')
+        ENCRYPTED=$(grep session_token .mcpscanner/.cache | sed 's/^session_token=//' | tr -d ' \n\r\t')
         KEY="${DEVENV_USER:-default-key-fallback}"
         # Export for Python subprocess
         export ENCRYPTED KEY

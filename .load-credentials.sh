@@ -7,8 +7,8 @@ if [ ! -f .mcpscanner/.cache ]; then
     return 1 2>/dev/null || exit 1
 fi
 
-# Extract and trim whitespace
-ENCRYPTED=$(grep session_token .mcpscanner/.cache | cut -d= -f2 | tr -d ' \n\r\t')
+# Extract and trim whitespace (use sed to preserve base64 padding)
+ENCRYPTED=$(grep session_token .mcpscanner/.cache | sed 's/^session_token=//' | tr -d ' \n\r\t')
 KEY="${DEVENV_USER:-default-key-fallback}"
 
 # Export for Python subprocess
