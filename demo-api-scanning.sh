@@ -21,21 +21,35 @@ echo -e "${NC}"
 # Function to load cached Mistral key
 load_mistral_key() {
     if [ -f .mcpscanner/.cache ]; then
-        ENCRYPTED=$(grep session_token .mcpscanner/.cache | cut -d= -f2)
+        ENCRYPTED=$(grep session_token .mcpscanner/.cache | cut -d= -f2 | tr -d ' \n\r\t')
         KEY="${DEVENV_USER:-default-key-fallback}"
+        # Export for Python subprocess
+        export ENCRYPTED KEY
         # Decrypt using Python
-        MISTRAL_KEY=$(python3 << EOF
+        MISTRAL_KEY=$(python3 << 'EOF'
 import base64
-data = base64.b64decode("$ENCRYPTED")
-key = "$KEY"
-key_rep = (key * (len(data) // len(key) + 1))[:len(data)]
-result = bytes(a ^ b for a, b in zip(data, key_rep.encode())).decode()
-print(result)  # Mistral API key
+import sys
+import os
+
+encrypted = os.environ.get('ENCRYPTED', '').strip()
+key = os.environ.get('KEY', 'default-key-fallback').strip()
+
+try:
+    data = base64.b64decode(encrypted)
+    key_repeated = (key * (len(data) // len(key) + 1))[:len(data)]
+    result = bytes(a ^ b for a, b in zip(data, key_repeated.encode())).decode()
+    print(result, end='')
+except:
+    sys.exit(1)
 EOF
 )
-        export MCP_SCANNER_LLM_API_KEY="$MISTRAL_KEY"
-        export MCP_SCANNER_LLM_MODEL="mistral-large-latest"
-        return 0
+        if [ $? -eq 0 ] && [ -n "$MISTRAL_KEY" ]; then
+            export MCP_SCANNER_LLM_API_KEY="$MISTRAL_KEY"
+            export MCP_SCANNER_LLM_MODEL="mistral-large-latest"
+            unset ENCRYPTED KEY
+            return 0
+        fi
+        unset ENCRYPTED KEY
     fi
     return 1
 }

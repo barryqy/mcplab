@@ -75,7 +75,7 @@ def xor_encrypt(data, key):
     return bytes(a ^ b for a, b in zip(data.encode(), key_repeated.encode()))
 
 encrypted = xor_encrypt(plaintext, key)
-print(base64.b64encode(encrypted).decode())
+print(base64.b64encode(encrypted).decode(), end='')
 PYPYTHON
 )
 
