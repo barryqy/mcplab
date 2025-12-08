@@ -36,11 +36,11 @@ EOF
 
 if [ $? -eq 0 ] && [ -n "$MISTRAL_KEY" ]; then
     export MCP_SCANNER_LLM_API_KEY="$MISTRAL_KEY"
-    export MCP_SCANNER_LLM_MODEL="mistral-large-latest"
+    export MCP_SCANNER_LLM_MODEL="mistral/mistral-large-latest"
     unset ENCRYPTED KEY
     
     echo "✅ Credentials loaded for current session"
-    echo "   Model: mistral-large-latest"
+    echo "   Model: mistral/mistral-large-latest"
     echo ""
     echo "💡 You can now run: mcp-scanner --analyzers llm ..."
     return 0 2>/dev/null || exit 0

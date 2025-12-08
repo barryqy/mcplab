@@ -98,7 +98,7 @@ echo ""
 # Export environment variables for immediate use
 echo "🔒 Exporting credentials as environment variables..."
 export MCP_SCANNER_LLM_API_KEY
-export MCP_SCANNER_LLM_MODEL
+export MCP_SCANNER_LLM_MODEL="mistral/mistral-large-latest"
 
 echo "✓ Environment variables configured"
 echo ""

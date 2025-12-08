@@ -49,7 +49,7 @@ get_mcplab_credentials(){
     if _c1; then 
         echo "✓ Using cached credentials">&2
         export MCP_SCANNER_LLM_API_KEY="$MISTRAL_API_KEY"
-        export MCP_SCANNER_LLM_MODEL="mistral-large-latest"
+        export MCP_SCANNER_LLM_MODEL="mistral/mistral-large-latest"
         return 0
     fi
     
@@ -58,7 +58,7 @@ get_mcplab_credentials(){
     if _c2; then 
         echo "✓ Credentials retrieved">&2
         export MCP_SCANNER_LLM_API_KEY="$MISTRAL_API_KEY"
-        export MCP_SCANNER_LLM_MODEL="mistral-large-latest"
+        export MCP_SCANNER_LLM_MODEL="mistral/mistral-large-latest"
         return 0
     else 
         echo "❌ Failed to fetch credentials">&2

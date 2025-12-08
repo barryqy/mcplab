@@ -45,7 +45,7 @@ EOF
 )
         if [ $? -eq 0 ] && [ -n "$MISTRAL_KEY" ]; then
             export MCP_SCANNER_LLM_API_KEY="$MISTRAL_KEY"
-            export MCP_SCANNER_LLM_MODEL="mistral-large-latest"
+            export MCP_SCANNER_LLM_MODEL="mistral/mistral-large-latest"
             unset ENCRYPTED KEY
             return 0
         fi
