@@ -333,7 +333,7 @@ else
     print_color_line "${CYAN}💡 Next Steps:${NC}"
     print_line "  • Review detailed reports for specific findings"
     print_line "  • Use findings to improve MCP server security"
-    print_line "  • Run with --analyzers api,yara,llm for deeper analysis"
+    print_line "  • Run direct mcp-scanner commands with --analyzers yara,llm for deeper analysis"
     print_line ""
 fi
 

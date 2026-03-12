@@ -11,18 +11,18 @@ This lab teaches MCP security through direct hands-on experience with the `mcp-s
 ### 1. Install MCP Scanner
 
 ```bash
-# Install dependencies for Alpine/musl systems
-apk add --no-cache python3-dev gcc musl-dev yara yara-dev build-base libffi-dev
-
 # Clone and install
 git clone https://github.com/cisco-ai-defense/mcp-scanner
 cd mcp-scanner
-pip install uv
-uv venv venv
-source venv/bin/activate
 
-# Force build from source for musl compatibility
-pip install --no-binary yara-python yara-python
+# Install uv if you don't have it
+pip install uv
+
+# Create a virtual environment with Python 3.13
+export PATH="$HOME/.local/bin:$PATH"
+uv venv --python 3.13
+source .venv/bin/activate
+
 uv pip install .
 
 # Verify installation
@@ -32,12 +32,13 @@ mcp-scanner --version
 ### 2. Clone Lab Repository
 
 ```bash
+cd /home/developer/src
 git clone https://github.com/barryqy/mcplab
 cd mcplab
-pip install -r requirements.txt
+uv pip install -r requirements.txt
 ```
 
-If you want to run `mcp-scanner --analyzers llm` manually, load the helper first:
+If you want to run the Module 4 LLM exercises manually, load the helper first:
 
 ```bash
 source ./lab-env.sh
@@ -47,21 +48,21 @@ source ./lab-env.sh
 
 ```bash
 # Scan the safe MCP server
-mcp-scanner --analyzers yara --format summary \
+mcp-scanner --analyzers yara --format table \
   --stdio-command python3 \
   --stdio-args examples/safe-mcp-server.py
 
 # Scan the malicious MCP server
-mcp-scanner --analyzers yara --format detailed \
+mcp-scanner --analyzers yara --format table \
   --stdio-command python3 \
   --stdio-args examples/malicious-mcp-server.py
 ```
 
 ## Lab Approach
 
-**Direct CLI Usage** - No wrapper scripts! Students use `mcp-scanner` directly:
+**Direct CLI Usage** - The core exercises use `mcp-scanner` directly, then Module 5 adds demo scripts for automation patterns:
 
-1. **Start an MCP server** (safe or malicious examples provided)
+1. **Point `mcp-scanner` at a provided server example**
 2. **Run mcp-scanner** against it with real CLI commands
 3. **See actual threat detection** from YARA patterns
 4. **Learn real-world tool usage** that transfers to production
@@ -81,11 +82,11 @@ This approach is:
 - **`examples/prompt-injection-server.py`** - Server with dangerous prompts
 - **`examples/mixed-security-server.py`** - Mix of safe and unsafe tools
 
-### Sample MCP Configurations
+### Demo Scripts
 
-- **`example-configs/cursor-config.json`** - Cursor IDE MCP configuration
-- **`example-configs/windsurf-config.json`** - Windsurf IDE configuration
-- **`example-configs/claude-desktop-config.json`** - Claude Desktop configuration
+- **`demo-prompt-scanning.sh`** - Prompt scanning walkthrough
+- **`demo-api-scanning.sh`** - REST API workflow demo
+- **`demo-complete-audit.sh`** - Multi-server audit with report output
 
 ## Lab Exercises
 
@@ -100,9 +101,6 @@ Scan a properly secured MCP server, learn what "safe" looks like
 ### Exercise 3: Scan Malicious Server
 Detect command injection, credential harvesting, and data exfiltration
 
-### Exercise 4: Scan Local Configurations
-Audit MCP servers configured in your AI IDEs (Cursor/Windsurf/Claude)
-
 ## Key Features
 
 ### YARA Analyzer (No API Keys Required!)
@@ -114,7 +112,7 @@ Audit MCP servers configured in your AI IDEs (Cursor/Windsurf/Claude)
 ### LLM Analyzer (Optional)
 - Semantic analysis of tool behavior
 - Detects: prompt injection, tool poisoning, intent manipulation
-- `lab-env.sh` loads the LLM settings used in this lab
+- `lab-env.sh` prepares the LLM settings used in this lab
 - Outside the lab, use any OpenAI-compatible, Bedrock, or other supported LLM endpoint
 
 ### API Analyzer (Optional - Enterprise)
@@ -156,30 +154,23 @@ mcp-scanner --analyzers yara --format detailed \
 python3 launch_mcp_http.py examples/safe-mcp-server.py 8001  # custom port
 ```
 
-### Scan Local Configurations
-
-```bash
-# Scan all known MCP configs (Cursor, Windsurf, Claude, etc.)
-mcp-scanner --analyzers yara --format table --scan-known-configs
-```
-
 ### With Multiple Analyzers
 
 ```bash
 # Load the helper used for the LLM exercises
 source ./lab-env.sh
 
+# Scan with multiple analyzers
+mcp-scanner --analyzers yara,llm --format by_severity \
+  --stdio-command python3 --stdio-args examples/malicious-mcp-server.py
+
 # Optional: add Cisco AI Defense API analyzer credentials
 export MCP_SCANNER_API_KEY="your-cisco-api-key"
-
-# Scan with multiple analyzers
-mcp-scanner --analyzers yara,llm,api --format by_severity \
-  --stdio-command python3 --stdio-args examples/malicious-mcp-server.py
 ```
 
 ## Requirements
 
-- **Python 3.11 - 3.13** (Python 3.14+ not yet supported)
+- **Python 3.13** recommended for this lab
 - **MCP Scanner** from [cisco-ai-defense/mcp-scanner](https://github.com/cisco-ai-defense/mcp-scanner)
 - **No API credentials required** for YARA analyzer
 - **LLM configuration** for the LLM analyzer exercises
@@ -187,7 +178,7 @@ mcp-scanner --analyzers yara,llm,api --format by_severity \
 
 ### For Alpine Linux / musl Systems
 
-Special installation required (see Quick Start above):
+Special installation may be required:
 ```bash
 apk add python3-dev gcc musl-dev yara yara-dev build-base libffi-dev
 pip install --no-binary yara-python yara-python

@@ -189,69 +189,6 @@ async def exercise3_scan_malicious_server():
     )
 
 
-async def scan_local_configs():
-    """Exercise 4: Scan MCP configurations from known locations."""
-    print_subheader("Exercise 4: Scan Local MCP Configurations")
-    
-    print_info("Searching for MCP configurations in well-known locations...")
-    print_info("(Cursor, Windsurf, Claude Desktop, VS Code)")
-    
-    try:
-        from mcpscanner import Config, Scanner
-        from mcpscanner.core.models import AnalyzerEnum
-    except ImportError:
-        print_error("MCP Scanner not installed")
-        print_info("Run: pip install -r requirements.txt")
-        return
-    
-    load_dotenv()
-    config = Config()
-    scanner = Scanner(config)
-    
-    print_info("Using analyzers: YARA\n")
-    
-    try:
-        results_dict = await scanner.scan_well_known_mcp_configs(
-            analyzers=[AnalyzerEnum.YARA]
-        )
-        
-        # Flatten the dictionary results into a list
-        results = []
-        for config_name, tool_results in results_dict.items():
-            if tool_results:
-                print_info(f"Found {len(tool_results)} tools in {config_name}")
-                results.extend(tool_results)
-        
-        if not results:
-            print_warning("No MCP configurations found on this system")
-            print_info("\n💡 This is normal if you haven't configured Cursor, Windsurf, or Claude Desktop with MCP servers yet.")
-            print_info("You can still learn from exercises 2 and 3!")
-            return
-        
-        print_success(f"\nScan complete! Found {len(results)} tools across all configs\n")
-        
-        safe_count = sum(1 for r in results if r.is_safe)
-        unsafe_count = len(results) - safe_count
-        
-        for result in results:
-            status = "✓ SAFE" if result.is_safe else "✗ UNSAFE"
-            color = "green" if result.is_safe else "red"
-            severity = result.severity if hasattr(result, 'severity') else 'UNKNOWN'
-            
-            console.print(f"  [{color}]{status}[/{color}] - {result.tool_name} ({severity})")
-        
-        print_info(f"\nResults: {safe_count} safe, {unsafe_count} unsafe")
-        
-        if unsafe_count > 0:
-            print_warning("\n⚠️  Found unsafe tools in your local configurations!")
-            print_info("Review and remove any untrusted MCP servers from your AI IDE configurations.")
-        else:
-            print_success("\n✅ All configured MCP tools appear safe!")
-        
-    except Exception as e:
-        print_error(f"Scan failed: {str(e)}")
-
-
 def show_about():
     """Show information about MCP Scanner."""
     print_subheader("About MCP Scanner")
@@ -300,7 +237,6 @@ Examples:
   python3 mcp_lab.py --exercise1-environment-validation
   python3 mcp_lab.py --exercise2-scan-safe-server
   python3 mcp_lab.py --exercise3-scan-malicious-server
-  python3 mcp_lab.py --exercise4-scan-local-configs
   python3 mcp_lab.py --about
         """
     )
@@ -321,12 +257,6 @@ Examples:
         '--exercise3-scan-malicious-server',
         action='store_true',
         help='Exercise 3: Scan a malicious MCP server'
-    )
-    
-    parser.add_argument(
-        '--exercise4-scan-local-configs',
-        action='store_true',
-        help='Exercise 4: Scan local MCP configurations'
     )
     
     parser.add_argument(
@@ -351,8 +281,6 @@ Examples:
             asyncio.run(exercise2_scan_safe_server())
         elif args.exercise3_scan_malicious_server:
             asyncio.run(exercise3_scan_malicious_server())
-        elif args.exercise4_scan_local_configs:
-            asyncio.run(scan_local_configs())
         elif args.about:
             show_about()
         else:
