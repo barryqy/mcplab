@@ -69,11 +69,7 @@ echo ""
 
 # Check if LLM API key is configured
 if [ -n "$MCP_SCANNER_LLM_API_KEY" ] || [ -n "$AWS_ACCESS_KEY_ID" ]; then
-    if [ -n "${LLM_API_KEY:-}" ] && [ -n "${LLM_BASE_URL:-}" ]; then
-        echo -e "${GREEN}✓ Built-in lab LLM detected - using LLM analyzer for prompt analysis${NC}"
-    else
-        echo -e "${GREEN}✓ LLM analyzer available - using LLM for prompt analysis${NC}"
-    fi
+    echo -e "${GREEN}✓ LLM analyzer available - using LLM for prompt analysis${NC}"
     echo ""
     mcp-scanner --analyzers llm --format detailed \
         prompts --server-url http://127.0.0.1:8000/sse || true

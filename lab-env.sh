@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Bridge the lab image's built-in LLM settings into the names mcp-scanner uses.
+# Load the lab's LLM settings into the names mcp-scanner uses.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 

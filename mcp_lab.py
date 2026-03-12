@@ -29,7 +29,7 @@ from dotenv import load_dotenv
 
 
 def apply_lab_llm_env() -> bool:
-    """Map the lab image's LLM variables into the names mcp-scanner expects."""
+    """Map the lab's LLM variables into the names mcp-scanner expects."""
     llm_from_image = False
 
     llm_api_key = os.getenv("LLM_API_KEY")
@@ -69,14 +69,14 @@ def check_environment() -> bool:
     
     if os.getenv("MCP_SCANNER_LLM_API_KEY"):
         if lab_llm_available and os.getenv("MCP_SCANNER_LLM_BASE_URL") == os.getenv("LLM_BASE_URL"):
-            print_success("✓ LLM - AI-powered analysis (configured from lab image)")
+            print_success("✓ LLM - AI-powered analysis (configured for this environment)")
         else:
             print_success("✓ LLM - AI-powered analysis (configured)")
         print_info(f"  Model: {os.getenv('MCP_SCANNER_LLM_MODEL', 'Not set')}")
         if os.getenv("MCP_SCANNER_LLM_BASE_URL"):
             print_info("  Endpoint: configured")
     else:
-        print_warning("⚠ LLM - Not configured (set MCP_SCANNER_LLM_* or use the lab image variables)")
+        print_warning("⚠ LLM - Not configured (set MCP_SCANNER_LLM_* or load the lab helper)")
     
     if os.getenv("MCP_SCANNER_API_KEY"):
         print_success("✓ API - Cisco AI Defense (configured)")
