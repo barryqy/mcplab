@@ -49,12 +49,12 @@ source ./lab-env.sh
 # Scan the safe MCP server
 mcp-scanner --analyzers yara --format summary \
   --stdio-command python3 \
-  --stdio-arg=examples/safe-mcp-server.py
+  --stdio-args examples/safe-mcp-server.py
 
 # Scan the malicious MCP server
 mcp-scanner --analyzers yara --format detailed \
   --stdio-command python3 \
-  --stdio-arg=examples/malicious-mcp-server.py
+  --stdio-args examples/malicious-mcp-server.py
 ```
 
 ## Lab Approach
@@ -129,15 +129,15 @@ Audit MCP servers configured in your AI IDEs (Cursor/Windsurf/Claude)
 ```bash
 # Scan with YARA (no API key needed)
 mcp-scanner --analyzers yara --format summary \
-  --stdio-command python3 --stdio-arg=examples/safe-mcp-server.py
+  --stdio-command python3 --stdio-args examples/safe-mcp-server.py
 
 # Detailed output with findings
 mcp-scanner --analyzers yara --format detailed \
-  --stdio-command python3 --stdio-arg=examples/malicious-mcp-server.py
+  --stdio-command python3 --stdio-args examples/malicious-mcp-server.py
 
 # Table format
 mcp-scanner --analyzers yara --format table \
-  --stdio-command python3 --stdio-arg=examples/malicious-mcp-server.py
+  --stdio-command python3 --stdio-args examples/malicious-mcp-server.py
 ```
 
 ### HTTP/SSE Server Scanning
@@ -180,7 +180,7 @@ curl -s -X POST "${LLM_BASE_URL}/chat/completions" \
 
 # Scan with all analyzers
 mcp-scanner --analyzers yara,llm,api --format by_severity \
-  --stdio-command python3 --stdio-arg=examples/malicious-mcp-server.py
+  --stdio-command python3 --stdio-args examples/malicious-mcp-server.py
 ```
 
 ## Requirements

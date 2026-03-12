@@ -95,7 +95,7 @@ echo -e "${YELLOW}Request: POST /scan-tool${NC}"
 cat << EOF | tee /tmp/scan-request.json
 {
   "server_url": "http://127.0.0.1:8001/sse",
-  "tool_name": "execute_code",
+  "tool_name": "execute_command",
   "analyzers": ["yara"]
 }
 EOF
