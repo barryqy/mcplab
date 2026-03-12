@@ -18,49 +18,8 @@ echo "║     MCP Scanner Demo - Prompt Injection Detection        ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
-# Function to load cached Mistral key
-load_mistral_key() {
-    if [ -f .mcpscanner/.cache ]; then
-        ENCRYPTED=$(grep session_token .mcpscanner/.cache | sed 's/^session_token=//' | tr -d ' \n\r\t')
-        KEY="${DEVENV_USER:-default-key-fallback}"
-        # Export for Python subprocess
-        export ENCRYPTED KEY
-        # Decrypt using Python
-        MISTRAL_KEY=$(python3 << 'EOF'
-import base64
-import sys
-import os
-
-encrypted = os.environ.get('ENCRYPTED', '').strip()
-key = os.environ.get('KEY', 'default-key-fallback').strip()
-
-try:
-    data = base64.b64decode(encrypted)
-    key_repeated = (key * (len(data) // len(key) + 1))[:len(data)]
-    result = bytes(a ^ b for a, b in zip(data, key_repeated.encode())).decode()
-    print(result, end='')
-except:
-    sys.exit(1)
-EOF
-)
-        if [ $? -eq 0 ] && [ -n "$MISTRAL_KEY" ]; then
-            export MCP_SCANNER_LLM_API_KEY="$MISTRAL_KEY"
-            export MCP_SCANNER_LLM_MODEL="mistral/mistral-large-latest"
-            unset ENCRYPTED KEY
-            return 0
-        fi
-        unset ENCRYPTED KEY
-    fi
-    return 1
-}
-
-# Try to load cached Mistral key
-load_mistral_key 2>/dev/null || true
-
-# Load environment (optional - for additional config)
-if [ -f ".env" ]; then
-    export $(cat .env | grep -v '^#' | xargs) 2>/dev/null || true
-fi
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lab-env.sh"
 
 # Check if MCP Scanner is installed
 if ! command -v mcp-scanner &> /dev/null; then
@@ -110,7 +69,11 @@ echo ""
 
 # Check if LLM API key is configured
 if [ -n "$MCP_SCANNER_LLM_API_KEY" ] || [ -n "$AWS_ACCESS_KEY_ID" ]; then
-    echo -e "${GREEN}✓ LLM analyzer available - using LLM for prompt analysis${NC}"
+    if [ -n "${LLM_API_KEY:-}" ] && [ -n "${LLM_BASE_URL:-}" ]; then
+        echo -e "${GREEN}✓ Built-in lab LLM detected - using LLM analyzer for prompt analysis${NC}"
+    else
+        echo -e "${GREEN}✓ LLM analyzer available - using LLM for prompt analysis${NC}"
+    fi
     echo ""
     mcp-scanner --analyzers llm --format detailed \
         prompts --server-url http://127.0.0.1:8000/sse || true
@@ -122,7 +85,7 @@ else
         prompts --server-url http://127.0.0.1:8000/sse || true
     echo ""
     echo -e "${CYAN}💡 Tip: To enable LLM-based prompt injection detection:${NC}"
-    echo "   Run: ./0-init-lab.sh (to get lab credentials)"
+    echo "   source ./lab-env.sh"
     echo "   Or set your own key: export MCP_SCANNER_LLM_API_KEY='your-api-key'"
 fi
 
@@ -141,4 +104,3 @@ echo ""
 # Cleanup
 kill $HTTPSERVER_PID 2>/dev/null || true
 rm -f /tmp/prompt-server.pid /tmp/prompt-server.log
-

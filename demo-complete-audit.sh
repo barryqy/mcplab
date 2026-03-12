@@ -18,49 +18,8 @@ echo "║     MCP Scanner Demo - Complete Security Audit            ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
-# Function to load cached Mistral key
-load_mistral_key() {
-    if [ -f .mcpscanner/.cache ]; then
-        ENCRYPTED=$(grep session_token .mcpscanner/.cache | sed 's/^session_token=//' | tr -d ' \n\r\t')
-        KEY="${DEVENV_USER:-default-key-fallback}"
-        # Export for Python subprocess
-        export ENCRYPTED KEY
-        # Decrypt using Python
-        MISTRAL_KEY=$(python3 << 'EOF'
-import base64
-import sys
-import os
-
-encrypted = os.environ.get('ENCRYPTED', '').strip()
-key = os.environ.get('KEY', 'default-key-fallback').strip()
-
-try:
-    data = base64.b64decode(encrypted)
-    key_repeated = (key * (len(data) // len(key) + 1))[:len(data)]
-    result = bytes(a ^ b for a, b in zip(data, key_repeated.encode())).decode()
-    print(result, end='')
-except:
-    sys.exit(1)
-EOF
-)
-        if [ $? -eq 0 ] && [ -n "$MISTRAL_KEY" ]; then
-            export MCP_SCANNER_LLM_API_KEY="$MISTRAL_KEY"
-            export MCP_SCANNER_LLM_MODEL="mistral/mistral-large-latest"
-            unset ENCRYPTED KEY
-            return 0
-        fi
-        unset ENCRYPTED KEY
-    fi
-    return 1
-}
-
-# Try to load cached Mistral key
-load_mistral_key 2>/dev/null || true
-
-# Load environment (optional - for additional config)
-if [ -f ".env" ]; then
-    export $(cat .env | grep -v '^#' | xargs) 2>/dev/null || true
-fi
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lab-env.sh"
 
 # Create reports directory
 mkdir -p reports
@@ -207,4 +166,3 @@ echo "  • Review detailed reports for specific findings"
 echo "  • Use findings to improve MCP server security"
 echo "  • Run with --analyzers api,yara,llm for deeper analysis"
 echo ""
-

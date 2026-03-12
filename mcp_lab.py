@@ -28,27 +28,55 @@ from utils.display import (
 from dotenv import load_dotenv
 
 
+def apply_lab_llm_env() -> bool:
+    """Map the lab image's LLM variables into the names mcp-scanner expects."""
+    llm_from_image = False
+
+    llm_api_key = os.getenv("LLM_API_KEY")
+    llm_base_url = os.getenv("LLM_BASE_URL")
+
+    if not os.getenv("MCP_SCANNER_LLM_API_KEY") and llm_api_key:
+        os.environ["MCP_SCANNER_LLM_API_KEY"] = llm_api_key
+        llm_from_image = True
+
+    if not os.getenv("MCP_SCANNER_LLM_BASE_URL") and llm_base_url:
+        os.environ["MCP_SCANNER_LLM_BASE_URL"] = llm_base_url
+        llm_from_image = True
+
+    if os.getenv("MCP_SCANNER_LLM_API_KEY") and os.getenv("MCP_SCANNER_LLM_BASE_URL"):
+        os.environ.setdefault("MCP_SCANNER_LLM_MODEL", "gpt-4o")
+
+    return llm_from_image
+
+
 def check_environment() -> bool:
     """Check if environment is properly configured."""
     print_subheader("Exercise 1: Environment Validation")
+    lab_llm_available = bool(os.getenv("LLM_API_KEY") and os.getenv("LLM_BASE_URL"))
     
     # Load .env file
     if not Path(".env").exists():
-        print_warning(".env file not found")
-        print_info("Run ./0-init-lab.sh to create it (optional)")
+        print_info(".env file not found (optional)")
     else:
         load_dotenv()
         print_success(".env file found")
+
+    apply_lab_llm_env()
     
     # Check which analyzers are available
     print_info("\nAvailable Analyzers:")
     print_success("✓ YARA - Pattern matching (always available)")
     
     if os.getenv("MCP_SCANNER_LLM_API_KEY"):
-        print_success("✓ LLM - AI-powered analysis (configured)")
+        if lab_llm_available and os.getenv("MCP_SCANNER_LLM_BASE_URL") == os.getenv("LLM_BASE_URL"):
+            print_success("✓ LLM - AI-powered analysis (configured from lab image)")
+        else:
+            print_success("✓ LLM - AI-powered analysis (configured)")
         print_info(f"  Model: {os.getenv('MCP_SCANNER_LLM_MODEL', 'Not set')}")
+        if os.getenv("MCP_SCANNER_LLM_BASE_URL"):
+            print_info("  Endpoint: configured")
     else:
-        print_warning("⚠ LLM - Not configured (add MCP_SCANNER_LLM_API_KEY to .env)")
+        print_warning("⚠ LLM - Not configured (set MCP_SCANNER_LLM_* or use the lab image variables)")
     
     if os.getenv("MCP_SCANNER_API_KEY"):
         print_success("✓ API - Cisco AI Defense (configured)")
@@ -311,6 +339,9 @@ Examples:
     
     # Show header
     print_header("MCP Scanner Lab")
+
+    load_dotenv()
+    apply_lab_llm_env()
     
     # Execute the requested exercise
     try:

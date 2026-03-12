@@ -37,6 +37,12 @@ cd mcplab
 pip install -r requirements.txt
 ```
 
+In the DevNet lab image, the demo scripts automatically use the built-in LLM exposed as `LLM_BASE_URL` and `LLM_API_KEY`. If you want to run `mcp-scanner --analyzers llm` manually, load the helper first:
+
+```bash
+source ./lab-env.sh
+```
+
 ### 3. Run Your First Scan
 
 ```bash
@@ -108,7 +114,8 @@ Audit MCP servers configured in your AI IDEs (Cursor/Windsurf/Claude)
 ### LLM Analyzer (Optional)
 - Semantic analysis of tool behavior
 - Detects: prompt injection, tool poisoning, intent manipulation
-- Requires: OpenAI, AWS Bedrock, or compatible LLM API key
+- In the DevNet lab image, `lab-env.sh` maps the built-in `LLM_*` variables automatically
+- Outside the lab image, use any OpenAI-compatible, Bedrock, or other supported LLM endpoint
 
 ### API Analyzer (Optional - Enterprise)
 - Cisco AI Defense threat intelligence
@@ -159,9 +166,17 @@ mcp-scanner --analyzers yara --format table --scan-known-configs
 ### With Multiple Analyzers
 
 ```bash
-# Export API keys
-export MCP_SCANNER_LLM_API_KEY="your-openai-key"
+# Use the built-in lab LLM
+source ./lab-env.sh
+
+# Optional: add Cisco AI Defense API analyzer credentials
 export MCP_SCANNER_API_KEY="your-cisco-api-key"
+
+# Optional: verify the built-in LLM endpoint
+curl -s -X POST "${LLM_BASE_URL}/chat/completions" \
+  -H "Authorization: Bearer ${LLM_API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "gpt-4o", "messages": [{"role": "user", "content": "Hello! What is Cisco DevNet in one sentence?"}], "max_tokens": 50}'
 
 # Scan with all analyzers
 mcp-scanner --analyzers yara,llm,api --format by_severity \
@@ -173,7 +188,8 @@ mcp-scanner --analyzers yara,llm,api --format by_severity \
 - **Python 3.11 - 3.13** (Python 3.14+ not yet supported)
 - **MCP Scanner** from [cisco-ai-defense/mcp-scanner](https://github.com/cisco-ai-defense/mcp-scanner)
 - **No API credentials required** for YARA analyzer
-- **Optional API keys** for LLM and API analyzers (advanced features)
+- **Built-in lab LLM** in the DevNet image for LLM analyzer exercises
+- **Optional API key** for Cisco AI Defense API analyzer
 
 ### For Alpine Linux / musl Systems
 
