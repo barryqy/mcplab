@@ -4,12 +4,17 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/model-routing.sh"
+
 if [ -f "${SCRIPT_DIR}/.env" ]; then
     set -a
     # shellcheck disable=SC1091
     source "${SCRIPT_DIR}/.env"
     set +a
 fi
+
+lab_llm_export_variants "${LLM_MODEL:-gpt-4o}"
 
 if [ -z "${MCP_SCANNER_LLM_API_KEY:-}" ] && [ -n "${LLM_API_KEY:-}" ]; then
     export MCP_SCANNER_LLM_API_KEY="${LLM_API_KEY}"
@@ -20,5 +25,5 @@ if [ -z "${MCP_SCANNER_LLM_BASE_URL:-}" ] && [ -n "${LLM_BASE_URL:-}" ]; then
 fi
 
 if [ -n "${MCP_SCANNER_LLM_API_KEY:-}" ] && [ -n "${MCP_SCANNER_LLM_BASE_URL:-}" ] && [ -z "${MCP_SCANNER_LLM_MODEL:-}" ]; then
-    export MCP_SCANNER_LLM_MODEL="gpt-4o"
+    export MCP_SCANNER_LLM_MODEL="${LAB_LLM_LITELLM_MODEL}"
 fi

@@ -24,6 +24,7 @@ from utils.display import (
     print_panel,
     console
 )
+from lab_llm import litellm_model_name
 
 from dotenv import load_dotenv
 
@@ -44,7 +45,10 @@ def apply_lab_llm_env() -> bool:
         llm_from_image = True
 
     if os.getenv("MCP_SCANNER_LLM_API_KEY") and os.getenv("MCP_SCANNER_LLM_BASE_URL"):
-        os.environ.setdefault("MCP_SCANNER_LLM_MODEL", "gpt-4o")
+        os.environ.setdefault(
+            "MCP_SCANNER_LLM_MODEL",
+            litellm_model_name(os.getenv("LLM_MODEL")),
+        )
 
     return llm_from_image
 
